@@ -34,8 +34,8 @@ export const MixAndMove2: React.FC<MixAndMove2Props> = ({
   onHome,
   onNextGame,
 }) => {
-  // Pool of varied syllable words
-  const [questions] = useState<SyllableWord[]>(() => {
+  const targetCorrect = 6;
+  const [questions, setQuestions] = useState<SyllableWord[]>(() => {
     const list = [
       ...LEVEL_2_WORDS.filter((w) => w.syllableCount >= 2),
       ...LEVEL_1_WORDS.filter((w) => w.syllableCount >= 2),
@@ -44,6 +44,7 @@ export const MixAndMove2: React.FC<MixAndMove2Props> = ({
   });
 
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [correctCount, setCorrectCount] = useState<number>(0);
   const [boardPosition, setBoardPosition] = useState<number>(0);
   const [selectedCount, setSelectedCount] = useState<number | null>(null);
   const [answered, setAnswered] = useState<boolean>(false);
@@ -76,12 +77,20 @@ export const MixAndMove2: React.FC<MixAndMove2Props> = ({
     if (correct) {
       playSound('step');
       firePastryConfetti();
-      // Move forward that exact number of syllables!
+      setCorrectCount((prev) => prev + 1);
       setBoardPosition((prev) =>
         Math.min(BOARD_TILES_LEVEL_2.length - 1, prev + currentWord.syllableCount)
       );
     } else {
       playSound('incorrect');
+      const list = [
+        ...LEVEL_2_WORDS,
+        ...LEVEL_1_WORDS,
+      ].filter((w) => !questions.some((q) => q.word === w.word));
+      const nextNewWord = list.length > 0
+        ? list[Math.floor(Math.random() * list.length)]
+        : LEVEL_2_WORDS[Math.floor(Math.random() * LEVEL_2_WORDS.length)];
+      setQuestions((prev) => [...prev, nextNewWord]);
     }
   };
 
@@ -89,14 +98,15 @@ export const MixAndMove2: React.FC<MixAndMove2Props> = ({
     setSelectedCount(null);
     setAnswered(false);
 
-    if (currentIndex + 1 < questions.length && boardPosition < BOARD_TILES_LEVEL_2.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
-      // Reached end or answered all questions
+    if (correctCount >= targetCorrect || (currentIndex + 1 >= questions.length && boardPosition >= BOARD_TILES_LEVEL_2.length - 1)) {
       setShowSummary(true);
       onComplete(results);
+    } else {
+      setCurrentIndex((prev) => prev + 1);
     }
   };
+
+  const progressPercent = Math.min(100, Math.round((correctCount / targetCorrect) * 100));
 
   return (
     <div className="w-full max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
