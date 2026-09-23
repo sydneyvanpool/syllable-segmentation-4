@@ -18,8 +18,10 @@ export const RecipeWriter2: React.FC<RecipeWriter2Props> = ({
   onHome,
   onNextGame,
 }) => {
-  const [questions] = useState(RECIPE_SENTENCES_LEVEL_2);
+  const targetCorrect = RECIPE_SENTENCES_LEVEL_2.length;
+  const [questions, setQuestions] = useState(RECIPE_SENTENCES_LEVEL_2);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [correctCount, setCorrectCount] = useState<number>(0);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [answered, setAnswered] = useState<boolean>(false);
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
@@ -52,8 +54,11 @@ export const RecipeWriter2: React.FC<RecipeWriter2Props> = ({
     if (correct) {
       playSound('correct');
       firePastryConfetti();
+      setCorrectCount((prev) => prev + 1);
     } else {
       playSound('incorrect');
+      const randomTask = RECIPE_SENTENCES_LEVEL_2[Math.floor(Math.random() * RECIPE_SENTENCES_LEVEL_2.length)];
+      setQuestions((prev) => [...prev, randomTask]);
     }
   };
 
@@ -61,15 +66,15 @@ export const RecipeWriter2: React.FC<RecipeWriter2Props> = ({
     setSelectedWord(null);
     setAnswered(false);
 
-    if (currentIndex + 1 < questions.length) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
+    if (correctCount >= targetCorrect || currentIndex + 1 >= questions.length) {
       setShowSummary(true);
       onComplete(results);
+    } else {
+      setCurrentIndex((prev) => prev + 1);
     }
   };
 
-  const progressPercent = Math.round(((currentIndex + (answered ? 1 : 0)) / questions.length) * 100);
+  const progressPercent = Math.min(100, Math.round((correctCount / targetCorrect) * 100));
   const fullSentence = `${currentTask.before} ${selectedWord || '______'} ${currentTask.after}`;
 
   return (
