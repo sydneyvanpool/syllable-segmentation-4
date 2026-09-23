@@ -7,7 +7,7 @@ export default defineConfig(() => {
   // Determine the base path for GitHub Pages
   // If your repo is: username/repo-name -> base should be /repo-name/
   // If your repo is: username.github.io -> base should be /
-  const base = process.env.GITHUB_PAGES_BASE || '/';
+  const base = '/syllable-segmentation-4/'|| '/';
 
   return {
     base: base,
