@@ -18,12 +18,13 @@ export const IngredientSort2: React.FC<IngredientSort2Props> = ({
   onHome,
   onNextGame,
 }) => {
-  // 6 words covering 1 to 5 syllables
-  const [questions] = useState(() => {
+  const targetCorrect = 6;
+  const [questions, setQuestions] = useState(() => {
     return [...LEVEL_2_WORDS].sort(() => Math.random() - 0.5).slice(0, 6);
   });
 
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [correctCount, setCorrectCount] = useState<number>(0);
   const [selectedJar, setSelectedJar] = useState<number | null>(null);
   const [answered, setAnswered] = useState<boolean>(false);
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
@@ -61,8 +62,14 @@ export const IngredientSort2: React.FC<IngredientSort2Props> = ({
     if (correct) {
       playSound('correct');
       firePastryConfetti();
+      setCorrectCount((prev) => prev + 1);
     } else {
       playSound('incorrect');
+      const available = LEVEL_2_WORDS.filter((w) => !questions.some((q) => q.word === w.word));
+      const nextNewWord = available.length > 0
+        ? available[Math.floor(Math.random() * available.length)]
+        : LEVEL_2_WORDS[Math.floor(Math.random() * LEVEL_2_WORDS.length)];
+      setQuestions((prev) => [...prev, nextNewWord]);
     }
   };
 
@@ -70,15 +77,15 @@ export const IngredientSort2: React.FC<IngredientSort2Props> = ({
     setSelectedJar(null);
     setAnswered(false);
 
-    if (currentIndex + 1 < questions.length) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
+    if (correctCount >= targetCorrect || currentIndex + 1 >= questions.length) {
       setShowSummary(true);
       onComplete(results);
+    } else {
+      setCurrentIndex((prev) => prev + 1);
     }
   };
 
-  const progressPercent = Math.round(((currentIndex + (answered ? 1 : 0)) / questions.length) * 100);
+  const progressPercent = Math.min(100, Math.round((correctCount / targetCorrect) * 100));
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
