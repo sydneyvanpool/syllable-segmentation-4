@@ -28,14 +28,15 @@ export const MixAndMove1: React.FC<MixAndMove1Props> = ({
   onHome,
   onNextGame,
 }) => {
-  // Select 5 words (1-syllable and 2-syllables)
-  const [questions] = useState<SyllableWord[]>(() => {
+  const targetCorrect = 5;
+  const [questions, setQuestions] = useState<SyllableWord[]>(() => {
     const ones = LEVEL_1_WORDS.filter((w) => w.syllableCount === 1).slice(0, 3);
     const twos = LEVEL_1_WORDS.filter((w) => w.syllableCount === 2).slice(0, 3);
     return [...ones, ...twos].sort(() => Math.random() - 0.5).slice(0, 5);
   });
 
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [correctCount, setCorrectCount] = useState<number>(0);
   const [boardPosition, setBoardPosition] = useState<number>(0);
   const [selectedSort, setSelectedSort] = useState<1 | 2 | null>(null);
   const [answered, setAnswered] = useState<boolean>(false);
@@ -68,10 +69,15 @@ export const MixAndMove1: React.FC<MixAndMove1Props> = ({
     if (correct) {
       playSound('step');
       firePastryConfetti();
-      // Advance baker on board game!
+      setCorrectCount((prev) => prev + 1);
       setBoardPosition((pos) => Math.min(BOARD_TILES.length - 1, pos + 1));
     } else {
       playSound('incorrect');
+      const pool = LEVEL_1_WORDS.filter((w) => w.syllableCount <= 2 && !questions.some((q) => q.word === w.word));
+      const nextNewWord = pool.length > 0
+        ? pool[Math.floor(Math.random() * pool.length)]
+        : LEVEL_1_WORDS[Math.floor(Math.random() * LEVEL_1_WORDS.length)];
+      setQuestions((prev) => [...prev, nextNewWord]);
     }
   };
 
@@ -79,13 +85,15 @@ export const MixAndMove1: React.FC<MixAndMove1Props> = ({
     setSelectedSort(null);
     setAnswered(false);
 
-    if (currentIndex + 1 < questions.length) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
+    if (correctCount >= targetCorrect || currentIndex + 1 >= questions.length) {
       setShowSummary(true);
       onComplete(results);
+    } else {
+      setCurrentIndex((prev) => prev + 1);
     }
   };
+
+  const progressPercent = Math.min(100, Math.round((correctCount / targetCorrect) * 100));
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
