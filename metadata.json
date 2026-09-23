@@ -1,0 +1,6 @@
+{
+  "name": "Syllable Bakery: Syllable Segmentation",
+  "description": "A baking-themed phonemic awareness app for second grade students to practice syllable segmentation by The Vanpool School.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
