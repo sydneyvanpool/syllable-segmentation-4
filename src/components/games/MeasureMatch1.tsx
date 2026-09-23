@@ -24,33 +24,38 @@ export const MeasureMatch1: React.FC<MeasureMatch1Props> = ({
   onHome,
   onNextGame,
 }) => {
-  const [questions] = useState<MeasureQuestion[]>(() => {
-    // Generate 6 distinct challenges
-    const targets = [2, 1, 3, 2, 1, 3];
-    return targets.map((target) => {
-      const correctCandidates = LEVEL_1_WORDS.filter((w) => w.syllableCount === target);
-      const wrong1 = LEVEL_1_WORDS.filter((w) => w.syllableCount !== target);
-      const correct = correctCandidates[Math.floor(Math.random() * correctCandidates.length)];
+  const targetCorrect = 6;
 
-      const distinctWrong: SyllableWord[] = [];
-      const shuffledWrong = [...wrong1].sort(() => Math.random() - 0.5);
-      for (const w of shuffledWrong) {
-        if (!distinctWrong.some((x) => x.syllableCount === w.syllableCount)) {
-          distinctWrong.push(w);
-        }
-        if (distinctWrong.length >= 2) break;
+  const generateMeasureQuestion = (): MeasureQuestion => {
+    const targets = [1, 2, 3];
+    const target = targets[Math.floor(Math.random() * targets.length)];
+    const correctCandidates = LEVEL_1_WORDS.filter((w) => w.syllableCount === target);
+    const wrong1 = LEVEL_1_WORDS.filter((w) => w.syllableCount !== target);
+    const correct = correctCandidates[Math.floor(Math.random() * correctCandidates.length)];
+
+    const distinctWrong: SyllableWord[] = [];
+    const shuffledWrong = [...wrong1].sort(() => Math.random() - 0.5);
+    for (const w of shuffledWrong) {
+      if (!distinctWrong.some((x) => x.syllableCount === w.syllableCount)) {
+        distinctWrong.push(w);
       }
+      if (distinctWrong.length >= 2) break;
+    }
 
-      const options = [correct, ...distinctWrong].sort(() => Math.random() - 0.5);
-      return {
-        targetCount: target,
-        options,
-        correctWord: correct,
-      };
-    });
+    const options = [correct, ...distinctWrong].sort(() => Math.random() - 0.5);
+    return {
+      targetCount: target,
+      options,
+      correctWord: correct,
+    };
+  };
+
+  const [questions, setQuestions] = useState<MeasureQuestion[]>(() => {
+    return Array.from({ length: 6 }, () => generateMeasureQuestion());
   });
 
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [correctCount, setCorrectCount] = useState<number>(0);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [answered, setAnswered] = useState<boolean>(false);
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
@@ -82,8 +87,11 @@ export const MeasureMatch1: React.FC<MeasureMatch1Props> = ({
     if (correct) {
       playSound('correct');
       firePastryConfetti();
+      setCorrectCount((prev) => prev + 1);
     } else {
       playSound('incorrect');
+      // Provide a new question if answered incorrectly
+      setQuestions((prev) => [...prev, generateMeasureQuestion()]);
     }
   };
 
@@ -91,15 +99,15 @@ export const MeasureMatch1: React.FC<MeasureMatch1Props> = ({
     setSelectedWord(null);
     setAnswered(false);
 
-    if (currentIndex + 1 < questions.length) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
+    if (correctCount >= targetCorrect || currentIndex + 1 >= questions.length) {
       setShowSummary(true);
       onComplete(results);
+    } else {
+      setCurrentIndex((prev) => prev + 1);
     }
   };
 
-  const progressPercent = Math.round(((currentIndex + (answered ? 1 : 0)) / questions.length) * 100);
+  const progressPercent = Math.min(100, Math.round((correctCount / targetCorrect) * 100));
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
