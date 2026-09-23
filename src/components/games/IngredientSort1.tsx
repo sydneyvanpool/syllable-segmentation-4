@@ -18,16 +18,16 @@ export const IngredientSort1: React.FC<IngredientSort1Props> = ({
   onHome,
   onNextGame,
 }) => {
-  // 6 question items per round
-  const [questions] = useState(() => {
-    // Shuffle and pick 2 of 1-syllable, 2 of 2-syllables, 2 of 3-syllables
-    const ones = LEVEL_1_WORDS.filter((w) => w.syllableCount === 1).slice(0, 2);
-    const twos = LEVEL_1_WORDS.filter((w) => w.syllableCount === 2).slice(0, 2);
-    const threes = LEVEL_1_WORDS.filter((w) => w.syllableCount === 3).slice(0, 2);
-    return [...ones, ...twos, ...threes].sort(() => Math.random() - 0.5);
+  const targetCorrect = 6;
+  const [questions, setQuestions] = useState(() => {
+    const ones = LEVEL_1_WORDS.filter((w) => w.syllableCount === 1);
+    const twos = LEVEL_1_WORDS.filter((w) => w.syllableCount === 2);
+    const threes = LEVEL_1_WORDS.filter((w) => w.syllableCount === 3);
+    return [...ones.slice(0, 2), ...twos.slice(0, 2), ...threes.slice(0, 2)].sort(() => Math.random() - 0.5);
   });
 
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [correctCount, setCorrectCount] = useState<number>(0);
   const [selectedBowl, setSelectedBowl] = useState<number | null>(null);
   const [answered, setAnswered] = useState<boolean>(false);
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
@@ -37,7 +37,6 @@ export const IngredientSort1: React.FC<IngredientSort1Props> = ({
   const currentWord = questions[currentIndex];
 
   useEffect(() => {
-    // Auto speak the word when starting question
     if (currentWord) {
       speakText(`Listen to the ingredient word: ${currentWord.word}`);
     }
@@ -66,8 +65,15 @@ export const IngredientSort1: React.FC<IngredientSort1Props> = ({
     if (correct) {
       playSound('correct');
       firePastryConfetti();
+      setCorrectCount((prev) => prev + 1);
     } else {
       playSound('incorrect');
+      // Provide a new question if answered incorrectly
+      const available = LEVEL_1_WORDS.filter((w) => !questions.some((q) => q.word === w.word));
+      const nextNewWord = available.length > 0
+        ? available[Math.floor(Math.random() * available.length)]
+        : LEVEL_1_WORDS[Math.floor(Math.random() * LEVEL_1_WORDS.length)];
+      setQuestions((prev) => [...prev, nextNewWord]);
     }
   };
 
@@ -75,15 +81,16 @@ export const IngredientSort1: React.FC<IngredientSort1Props> = ({
     setSelectedBowl(null);
     setAnswered(false);
 
-    if (currentIndex + 1 < questions.length) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
+    // If we have achieved target correct answers, complete the game
+    if (correctCount >= targetCorrect || currentIndex + 1 >= questions.length) {
       setShowSummary(true);
       onComplete(results);
+    } else {
+      setCurrentIndex((prev) => prev + 1);
     }
   };
 
-  const progressPercent = Math.round(((currentIndex + (answered ? 1 : 0)) / questions.length) * 100);
+  const progressPercent = Math.min(100, Math.round((correctCount / targetCorrect) * 100));
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
